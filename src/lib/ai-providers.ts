@@ -32,35 +32,29 @@ const SYSTEM_PROMPT = `Ты — эксперт по охране труда в �
 
 Вопрос пользователя: {question}`;
 
-// Groq API (free tier: 1M tokens/day)
+// Groq API using groq-sdk (free tier: 1M tokens/day)
 async function callGroq(messages: Message[]): Promise<AIResponse> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY not set');
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages,
-      temperature: 0.3,
-      max_tokens: 4096,
-    }),
+  const Groq = (await import('groq-sdk')).default;
+  const groq = new Groq({ apiKey });
+
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: messages as any,
+    temperature: 0.3,
+    max_tokens: 4096,
   });
 
-  if (!response.ok) {
-    throw new Error(`Groq API error: ${response.status} ${await response.text()}`);
-  }
-
-  const data = await response.json();
   return {
-    content: data.choices[0].message.content,
+    content: completion.choices[0].message.content || '',
     provider: 'Groq',
-    model: data.model,
-    usage: data.usage,
+    model: completion.model,
+    usage: {
+      prompt_tokens: completion.usage?.prompt_tokens || 0,
+      completion_tokens: completion.usage?.completion_tokens || 0,
+    },
   };
 }
 
@@ -106,7 +100,7 @@ async function callOpenRouter(messages: Message[]): Promise<AIResponse> {
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://ai-ot.vercel.app',
+      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://ai-ot.github.io',
       'X-Title': 'AI-OT Belarus',
     },
     body: JSON.stringify({
@@ -127,44 +121,6 @@ async function callOpenRouter(messages: Message[]): Promise<AIResponse> {
     provider: 'OpenRouter',
     model: data.model,
     usage: data.usage,
-  };
-}
-
-// HuggingFace Inference API (free tier)
-async function callHuggingFace(messages: Message[]): Promise<AIResponse> {
-  const apiKey = process.env.HUGGINGFACE_API_KEY;
-  if (!apiKey) throw new Error('HUGGINGFACE_API_KEY not set');
-
-  const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n') + '\n\nassistant:';
-
-  const response = await fetch(
-    'https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1',
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 2048,
-          temperature: 0.3,
-          return_full_text: false,
-        },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`HuggingFace API error: ${response.status} ${await response.text()}`);
-  }
-
-  const data = await response.json();
-  return {
-    content: Array.isArray(data) ? data[0].generated_text : data.generated_text,
-    provider: 'HuggingFace',
-    model: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
   };
 }
 
@@ -189,7 +145,6 @@ export async function generateResponse(
     { name: 'Groq', fn: callGroq },
     { name: 'DeepSeek', fn: callDeepSeek },
     { name: 'OpenRouter', fn: callOpenRouter },
-    { name: 'HuggingFace', fn: callHuggingFace },
   ];
 
   const errors: string[] = [];
@@ -198,11 +153,11 @@ export async function generateResponse(
     try {
       console.log(`Trying ${provider.name}...`);
       const result = await provider.fn(messages);
-      console.log(`✅ Success with ${provider.name}`);
+      console.log(`Success with ${provider.name}`);
       return result;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.error(`❌ ${provider.name} failed:`, msg);
+      console.error(`${provider.name} failed:`, msg);
       errors.push(`${provider.name}: ${msg}`);
       continue;
     }
@@ -217,6 +172,5 @@ export function getAvailableProviders(): string[] {
   if (process.env.GROQ_API_KEY) providers.push('Groq');
   if (process.env.DEEPSEEK_API_KEY) providers.push('DeepSeek');
   if (process.env.OPENROUTER_API_KEY) providers.push('OpenRouter');
-  if (process.env.HUGGINGFACE_API_KEY) providers.push('HuggingFace');
   return providers;
 }
