@@ -3,17 +3,6 @@
 import { useState, useEffect } from 'react';
 import { SearchPanel } from '@/components/SearchPanel';
 import { DocumentUploader } from '@/components/DocumentUploader';
-import {
-  Database,
-  FileText,
-  MessageSquare,
-  RefreshCw,
-  Loader2,
-  Check,
-  AlertTriangle,
-  TrendingUp,
-  Clock,
-} from 'lucide-react';
 
 interface Stats {
   totalDocuments: number;
@@ -53,8 +42,6 @@ export default function AdminPage() {
 
   const fetchStats = async () => {
     try {
-      // These would be real API calls in production
-      // For now, using mock data
       setStats({
         totalDocuments: 156,
         totalChunks: 3247,
@@ -95,151 +82,95 @@ export default function AdminPage() {
     }
   };
 
+  const tabs = [
+    { id: 'search' as const, label: 'Поиск' },
+    { id: 'upload' as const, label: 'Загрузка' },
+    { id: 'stats' as const, label: 'Статистика' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '1rem 1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Панель управления AI-OT</h1>
-            <p className="text-sm text-gray-500">Управление базой знаний и мониторинг системы</p>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>Панель управления AI-OT</h1>
+            <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Управление базой знаний и мониторинг системы</p>
           </div>
           <button
             onClick={handleSync}
             disabled={syncStatus.isSyncing}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#0284c7', color: 'white', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', opacity: syncStatus.isSyncing ? 0.5 : 1 }}
           >
-            {syncStatus.isSyncing ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-            Синхронизировать Google Drive
+            {syncStatus.isSyncing ? 'Синхронизация...' : 'Синхронизировать Google Drive'}
           </button>
         </div>
       </header>
 
       {/* Stats Cards */}
-      <div className="px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalDocuments}</p>
-                <p className="text-sm text-gray-500">Документов</p>
-              </div>
-            </div>
+      <div style={{ padding: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', border: '1px solid #e5e7eb', padding: '1rem' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>{stats.totalDocuments}</div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Документов</div>
           </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Database className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalChunks}</p>
-                <p className="text-sm text-gray-500">Чанков в базе</p>
-              </div>
-            </div>
+          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', border: '1px solid #e5e7eb', padding: '1rem' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>{stats.totalChunks}</div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Чанков в базе</div>
           </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <MessageSquare className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalMessages}</p>
-                <p className="text-sm text-gray-500">Сообщений</p>
-              </div>
-            </div>
+          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', border: '1px solid #e5e7eb', padding: '1rem' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>{stats.totalMessages}</div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Сообщений</div>
           </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalSessions}</p>
-                <p className="text-sm text-gray-500">Сессий</p>
-              </div>
-            </div>
+          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', border: '1px solid #e5e7eb', padding: '1rem' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>{stats.totalSessions}</div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Сессий</div>
           </div>
         </div>
 
         {/* Sync Status */}
         {syncStatus.result && (
-          <div className={`mb-6 p-4 rounded-lg ${
-            syncStatus.result.errors.length === 0 ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
-          }`}>
-            <div className="flex items-center gap-2 mb-2">
-              {syncStatus.result.errors.length === 0 ? (
-                <Check className="w-5 h-5 text-green-600" />
-              ) : (
-                <AlertTriangle className="w-5 h-5 text-yellow-600" />
-              )}
-              <span className="font-medium">
-                {syncStatus.result.errors.length === 0 ? 'Синхронизация завершена' : 'Синхронизация завершена с ошибками'}
-              </span>
+          <div style={{ marginBottom: '1.5rem', padding: '1rem', borderRadius: '0.5rem', backgroundColor: syncStatus.result.errors.length === 0 ? '#f0fdf4' : '#fefce8', border: `1px solid ${syncStatus.result.errors.length === 0 ? '#bbf7d0' : '#fde047'}` }}>
+            <div style={{ fontWeight: '500', marginBottom: '0.5rem' }}>
+              {syncStatus.result.errors.length === 0 ? 'Синхронизация завершена' : 'Синхронизация завершена с ошибками'}
             </div>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>Добавлено: <span className="font-medium">{syncStatus.result.added}</span></div>
-              <div>Обновлено: <span className="font-medium">{syncStatus.result.updated}</span></div>
-              <div>Удалено: <span className="font-medium">{syncStatus.result.removed}</span></div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', fontSize: '0.875rem' }}>
+              <div>Добавлено: <span style={{ fontWeight: 500 }}>{syncStatus.result.added}</span></div>
+              <div>Обновлено: <span style={{ fontWeight: 500 }}>{syncStatus.result.updated}</span></div>
+              <div>Удалено: <span style={{ fontWeight: 500 }}>{syncStatus.result.removed}</span></div>
             </div>
-            {syncStatus.result.errors.length > 0 && (
-              <div className="mt-2">
-                <p className="text-sm font-medium text-yellow-700">Ошибки:</p>
-                <ul className="text-sm text-yellow-600 mt-1">
-                  {syncStatus.result.errors.map((err, i) => (
-                    <li key={i}>• {err}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {syncStatus.lastSync && (
-              <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                Последняя синхронизация: {new Date(syncStatus.lastSync).toLocaleString('ru-RB')}
-              </p>
-            )}
           </div>
         )}
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="flex border-b border-gray-200">
-            {[
-              { id: 'search', label: 'Поиск', icon: Search },
-              { id: 'upload', label: 'Загрузка', icon: FileText },
-              { id: 'stats', label: 'Статистика', icon: TrendingUp },
-            ].map(tab => (
+        <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
+            {tabs.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  border: 'none',
+                  borderBottom: activeTab === tab.id ? '2px solid #0284c7' : '2px solid transparent',
+                  color: activeTab === tab.id ? '#0284c7' : '#6b7280',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer',
+                }}
               >
-                <tab.icon className="w-4 h-4" />
                 {tab.label}
               </button>
             ))}
           </div>
 
-          <div className="p-6">
+          <div style={{ padding: '1.5rem' }}>
             {activeTab === 'search' && <SearchPanel />}
             {activeTab === 'upload' && <DocumentUploader />}
             {activeTab === 'stats' && (
-              <div className="text-center py-8 text-gray-500">
-                <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>Статистика использования будет доступна в следующей версии</p>
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                Статистика использования будет доступна в следующей версии
               </div>
             )}
           </div>
