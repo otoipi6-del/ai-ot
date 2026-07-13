@@ -29,17 +29,21 @@ export async function POST(request: NextRequest) {
     const text = await extractTextFromFile(buffer, file.type);
 
     // Auto-detect metadata if not provided
-    let meta = { documentType: documentType || 'other', authority: authority || undefined };
+    let metaDocumentType = documentType || 'other';
+    let metaAuthority = authority || undefined;
+
     if (!documentType) {
-      meta = detectDocumentMetadata(title || file.name, text);
+      const detected = detectDocumentMetadata(title || file.name, text);
+      metaDocumentType = detected.documentType;
+      metaAuthority = detected.authority;
     }
 
     // Process and store
     const documentId = await processAndStoreDocument({
       title: title || file.name,
       content: text,
-      documentType: meta.documentType as any,
-      authority: authority || meta.authority,
+      documentType: metaDocumentType as 'law' | 'regulation' | 'explanation' | 'standard' | 'other',
+      authority: metaAuthority,
       effectiveDate: effectiveDate || undefined,
     });
 
@@ -47,8 +51,8 @@ export async function POST(request: NextRequest) {
       success: true,
       documentId,
       title: title || file.name,
-      documentType: meta.documentType,
-      authority: meta.authority,
+      documentType: metaDocumentType,
+      authority: metaAuthority,
       contentLength: text.length,
     });
 
