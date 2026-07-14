@@ -26,6 +26,7 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
       - name: Build static site
         run: npm run build
         env:
@@ -47,4 +48,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-Fix: update actions to v4
