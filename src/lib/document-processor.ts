@@ -5,17 +5,16 @@ import { generateEmbedding } from './embedding'
 export function splitIntoChunks(text: string, chunkSize: number = 1000, overlap: number = 200): string[] {
   const chunks: string[] = []
   let start = 0
-
+  
   while (start < text.length) {
     const end = Math.min(start + chunkSize, text.length)
     let chunkEnd = end
-
+    
     if (end < text.length) {
       const lastPeriod = text.lastIndexOf('.', end)
-      const lastNewline = text.lastIndexOf('
-', end)
+      const lastNewline = text.lastIndexOf('\n', end)
       const lastSpace = text.lastIndexOf(' ', end)
-
+      
       if (lastPeriod > start && lastPeriod > end - 100) {
         chunkEnd = lastPeriod + 1
       } else if (lastNewline > start && lastNewline > end - 100) {
@@ -24,15 +23,15 @@ export function splitIntoChunks(text: string, chunkSize: number = 1000, overlap:
         chunkEnd = lastSpace
       }
     }
-
+    
     chunks.push(text.slice(start, chunkEnd).trim())
     start = chunkEnd - overlap
-
+    
     if (start >= chunkEnd) {
       start = chunkEnd
     }
   }
-
+  
   return chunks.filter(chunk => chunk.length > 50)
 }
 
@@ -61,22 +60,22 @@ export async function processTextDocument(
       }])
       .select()
       .single()
-
+    
     if (docError) {
       console.error('Error saving document:', docError)
       return null
     }
-
+    
     const documentId = docData.id
-
+    
     // 2. Разбиваем на чанки
     const chunks = splitIntoChunks(content, 1000, 200)
-
+    
     // 3. Сохраняем чанки с эмбеддингами
     for (let i = 0; i < chunks.length; i++) {
       const chunkText = chunks[i]
       const embedding = await generateEmbedding(chunkText)
-
+      
       const { error: chunkError } = await supabase
         .from('document_chunks')
         .insert([{
@@ -88,12 +87,12 @@ export async function processTextDocument(
             total_chunks: chunks.length,
           },
         }])
-
+      
       if (chunkError) {
         console.error(`Error saving chunk ${i}:`, chunkError)
       }
     }
-
+    
     return documentId
   } catch (error) {
     console.error('Error processing document:', error)
@@ -108,12 +107,12 @@ export async function deleteDocument(documentId: string): Promise<boolean> {
       .from('documents')
       .delete()
       .eq('id', documentId)
-
+    
     if (error) {
       console.error('Error deleting document:', error)
       return false
     }
-
+    
     return true
   } catch (error) {
     console.error('Error deleting document:', error)
