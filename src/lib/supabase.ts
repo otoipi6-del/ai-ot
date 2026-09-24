@@ -244,8 +244,8 @@ export async function getKnowledgeBaseStats(): Promise<{
       console.error('Error getting chunks count:', chunksError)
     }
 
-    const categories = [...new Set((docs || []).map(d => d.document_type).filter(Boolean))]
-    const authorities = [...new Set((docs || []).map(d => d.authority).filter(Boolean))]
+    const categories = Array.from(new Set((docs || []).map(d => d.document_type).filter(Boolean)))
+    const authorities = Array.from(new Set((docs || []).map(d => d.authority).filter(Boolean)))
 
     return {
       totalDocuments: docs?.length || 0,
