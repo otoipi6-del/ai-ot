@@ -1,9 +1,8 @@
-import { AIResponse, Source } from './types'
-import { generateResponse, getDefaultModel, getModelByName } from './ai-providers'
-import { searchDocuments, getDocumentChunks } from './supabase'
-import { generateEmbedding } from './embedding'
-import { searchWeb } from './web-search'
-import { logSearch } from './supabase'
+import { AIResponse, Source } from '../types'
+import { generateResponse, getDefaultModel, getModelByName } from '../ai-providers'
+import { searchDocuments, logSearch } from '../supabase'
+import { generateEmbedding } from '../embedding'
+import { searchWeb } from '../web-search'
 
 // Клиентская версия API чата (вместо server route)
 export async function askQuestionClient(
