@@ -39,12 +39,15 @@ export interface ChatMessage {
 }
 
 export interface Source {
-  id: string
+  id?: string
   title: string
   content: string
-  embedding: number[]
-  metadata: Record<string, any>
-  created_at: string
+  similarity?: number
+  authority?: string
+  url?: string
+  embedding?: number[]
+  metadata?: Record<string, any>
+  created_at?: string
 }
 
 export interface SearchResult {
@@ -59,6 +62,7 @@ export interface AIResponse {
   content: string
   sources: Source[]
   model_used: string
+  search_performed?: boolean
 }
 
 export interface ModelConfig {
