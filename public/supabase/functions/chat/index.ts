@@ -10,6 +10,11 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  console.log('SUPABASE_URL set:', !!Deno.env.get('SUPABASE_URL'));
+  console.log('SERVICE_ROLE set:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+  console.log('HF set:', !!Deno.env.get('HUGGINGFACE_API_KEY'));
+  console.log('GROQ set:', !!Deno.env.get('GROQ_API_KEY'));
+
   try {
     const { message, sessionId, useWebSearch = true } = await req.json();
 
@@ -25,55 +30,73 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // 1. Generate embedding for query
-    const jinaKey = Deno.env.get('JINA_API_KEY');
+    // 1. Generate embedding for query via Hugging Face
+    const hfKey = Deno.env.get('HUGGINGFACE_API_KEY');
     let queryEmbedding: number[] = [];
 
-    if (jinaKey) {
-      const embedRes = await fetch('https://api.jina.ai/v1/embeddings', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${jinaKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'jina-embeddings-v3',
-          input: [message],
-        }),
-      });
-      const embedData = await embedRes.json();
-      queryEmbedding = embedData.data[0].embedding;
+    if (hfKey) {
+      const embedRes = await fetch(
+        'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${hfKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            inputs: message,
+            options: { wait_for_model: true },
+          }),
+        }
+      );
+
+      if (embedRes.ok) {
+        const embedData = await embedRes.json();
+        if (Array.isArray(embedData) && typeof embedData[0] === 'number') {
+          queryEmbedding = embedData;
+        } else if (Array.isArray(embedData) && Array.isArray(embedData[0])) {
+          const tokenVectors = embedData as number[][];
+          const dim = tokenVectors[0].length;
+          const mean = new Array(dim).fill(0);
+          for (const vec of tokenVectors) {
+            for (let i = 0; i < dim; i++) mean[i] += vec[i];
+          }
+          queryEmbedding = mean.map(v => v / tokenVectors.length);
+        }
+      }
     }
 
     // 2. Vector search
-    const { data: vectorResults } = await supabase.rpc('match_documents', {
-      query_embedding: queryEmbedding,
-      match_threshold: 0.7,
-      match_count: 5,
-    });
+    let vectorResults: any[] = [];
+    if (queryEmbedding.length > 0) {
+      const { data } = await supabase.rpc('match_documents', {
+        query_embedding: queryEmbedding,
+        match_threshold: 0.6,
+        match_count: 5,
+      });
+      vectorResults = data || [];
+    }
 
     // 3. Build context
     let context = '';
     const sources: string[] = [];
 
-    if (vectorResults && vectorResults.length > 0) {
+    if (vectorResults.length > 0) {
       context = vectorResults.map((r: any, i: number) => {
-        sources.push(`${r.document_title} (${r.authority || 'Неизвестный орган'})`);
-        return `[${i + 1}] ${r.content}\n(Источник: ${r.document_title})`;
+        sources.push(`${r.document_title || 'Документ'} (${r.authority || 'Неизвестный орган'})`);
+        return `[${i + 1}] ${r.content}\n(Источник: ${r.document_title || 'Документ'})`;
       }).join('\n\n---\n\n');
     }
 
     // 4. Web search fallback
-    if (useWebSearch && (!vectorResults || vectorResults.length < 2)) {
+    if (useWebSearch && vectorResults.length < 2) {
       try {
-        const searchRes = await fetch(
+        await fetch(
           `https://html.duckduckgo.com/html/?q=${encodeURIComponent('Беларусь охрана труда ' + message)}`
         );
-        const searchHtml = await searchRes.text();
-        // Simple extraction
         context += '\n\n[Веб-поиск] Дополнительная информация из интернета.';
       } catch {
-        // Ignore web search errors
+        // ignore
       }
     }
 
@@ -91,11 +114,11 @@ Deno.serve(async (req) => {
 4. Давай практические рекомендации
 5. Используй официальную терминологию РБ`;
 
-    // Try Groq first
-    const groqKey = Deno.env.get('GROQ_API_KEY');
     let aiResponse = '';
     let provider = '';
 
+    // Try Groq first
+    const groqKey = Deno.env.get('GROQ_API_KEY');
     if (groqKey) {
       const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -159,7 +182,7 @@ Deno.serve(async (req) => {
           headers: {
             'Authorization': `Bearer ${orKey}`,
             'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://ai-ot.github.io',
+            'HTTP-Referer': 'https://otoipi6-del.github.io/ai-ot/',
             'X-Title': 'AI-OT Belarus',
           },
           body: JSON.stringify({
@@ -198,17 +221,17 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        response: aiResponse,
+        content: aiResponse,
         sources: [...new Set(sources)],
-        provider,
-        vectorResults: vectorResults?.length || 0,
+        model_used: provider,
+        search_performed: vectorResults.length > 0,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
