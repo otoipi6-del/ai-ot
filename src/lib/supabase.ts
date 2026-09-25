@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Клиентский Supabase (anon key — безопасен для браузера)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cbsmjeaxrcgrxiplytll.supabase.co'
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+// Клиентский Supabase (publishable key — безопасен для браузера, защита через RLS)
+const supabaseUrl = 'https://cbsmjeaxrcgrxiplytll.supabase.co'
+const supabaseKey = 'sb_publishable_IuN3sK-YsutoyiVBCjFZ5w_A_3lZOzz'
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
