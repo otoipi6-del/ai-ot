@@ -10,6 +10,11 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  console.log('SUPABASE_URL set:', !!Deno.env.get('SUPABASE_URL'));
+  console.log('SERVICE_ROLE set:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+  console.log('HF set:', !!Deno.env.get('HUGGINGFACE_API_KEY'));
+  console.log('GROQ set:', !!Deno.env.get('GROQ_API_KEY'));
+
   try {
     const { message, sessionId, useWebSearch = true } = await req.json();
 
