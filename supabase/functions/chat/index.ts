@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     console.log('Creating client...');
     const supabase = createClient(supabaseUrl, serviceRole);
 
-    // 1. Hugging Face embedding
+    // 1. Hugging Face embedding (новый роутер)
     const hfKey = Deno.env.get('HUGGINGFACE_API_KEY');
     let queryEmbedding: number[] = [];
 
@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
       console.log('Calling Hugging Face...');
       try {
         const embedRes = await fetch(
-          'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
+          'https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/pipeline/feature-extraction',
           {
             method: 'POST',
             headers: {
