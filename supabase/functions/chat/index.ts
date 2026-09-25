@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
+            model: 'openai/gpt-oss-120b',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: message },
@@ -162,6 +162,86 @@ Deno.serve(async (req) => {
         }
       } catch (e) {
         console.error('Groq exception:', e);
+      }
+    }
+
+    // Fallback: DeepSeek
+    if (!aiResponse) {
+      const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY');
+      if (deepseekKey) {
+        console.log('Calling DeepSeek...');
+        try {
+          const dsRes = await fetch('https://api.deepseek.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${deepseekKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'deepseek-chat',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: message },
+              ],
+              temperature: 0.3,
+              max_tokens: 4096,
+            }),
+          });
+
+          console.log('DeepSeek status:', dsRes.status);
+
+          if (dsRes.ok) {
+            const dsData = await dsRes.json();
+            aiResponse = dsData.choices[0].message.content;
+            provider = 'DeepSeek';
+          } else {
+            const errText = await dsRes.text();
+            console.error('DeepSeek error:', errText);
+          }
+        } catch (e) {
+          console.error('DeepSeek exception:', e);
+        }
+      }
+    }
+
+    // Fallback: OpenRouter
+    if (!aiResponse) {
+      const orKey = Deno.env.get('OPENROUTER_API_KEY');
+      if (orKey) {
+        console.log('Calling OpenRouter...');
+        try {
+          const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${orKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://otoipi6-del.github.io/ai-ot/',
+              'X-Title': 'AI-OT Belarus',
+            },
+            body: JSON.stringify({
+              model: 'meta-llama/llama-3.3-70b-instruct:free',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: message },
+              ],
+              temperature: 0.3,
+              max_tokens: 4096,
+            }),
+          });
+
+          console.log('OpenRouter status:', orRes.status);
+
+          if (orRes.ok) {
+            const orData = await orRes.json();
+            aiResponse = orData.choices[0].message.content;
+            provider = 'OpenRouter';
+          } else {
+            const errText = await orRes.text();
+            console.error('OpenRouter error:', errText);
+          }
+        } catch (e) {
+          console.error('OpenRouter exception:', e);
+        }
       }
     }
 
